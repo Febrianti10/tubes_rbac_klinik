@@ -159,7 +159,6 @@ async function main() {
     update: {},
     create: {
       username: "superadmin",
-      name:     "Super Administrator",
       email:    "admin@klinikcare.com",
       password: hashedPassword,
     },
