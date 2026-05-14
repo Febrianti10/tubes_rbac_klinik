@@ -22,8 +22,8 @@ Sistem Informasi Klinik berbasis Role-Based Access Control (RBAC) menggunakan Cl
 | ------- | ------------------ | --------------------------------- |
 | Tiko    | Frontend Lead (A4) | Setup React, Auth UI, AuthContext |
 | Imel    | Frontend (A5)      | Dashboard, Sidebar, Layout        |
-| -       | Frontend (A6)      | Pendaftaran & Antrian Pasien      |
-| -       | Frontend (A7)      | Rekam Medis & Jadwal Dokter       |
+| Tesa       | Frontend (A6)      | Pendaftaran & Antrian Pasien      |
+| Evelyn       | Frontend (A7)      | Rekam Medis & Jadwal Dokter       |
 | Ghina   | Frontend (A8)      | Kasir, Route Guard, Halaman 403   |
 
 ---
