@@ -20,12 +20,7 @@ export const pasienRoutes = new Elysia({ prefix: "/pasien" })
       return {
         status: "success",
         data: dataPasien,
-      };catch (error) { 
-        return {
-          status: "error",
-          message: "Gagal mengambil data pasien",
-        };
-      } 
+      };
     },
     {
       beforeHandle: rbacMiddleware(PERMISSION.READ_PASIEN),
@@ -35,10 +30,21 @@ export const pasienRoutes = new Elysia({ prefix: "/pasien" })
   // ENDPOINT 2: Tambah Pasien Baru (Butuh izin WRITE_PASIEN)
   .post(
     "/",
-    ({ body, user }: any) => {
+    async ({ body, user }: any) => {
+        const newPasien = await db.pasien.create({
+            data: {
+                noRM: body.noRM,
+                nama: body.nama,
+                tglLahir: new Date(body.tglLahir),
+                jenisKelamin: body.jenisKelamin,
+                alamat: body.alamat,
+                noTelp: body.noTelp
+            },
+        });
       // Nanti di sini panggil Prisma untuk insert ke DB
       return {
         status: "success",
+        dataPasien: newPasien,
         message: "Data pasien berhasil ditambahkan",
         dicatat_oleh: user.username,
         data: body,
@@ -47,10 +53,12 @@ export const pasienRoutes = new Elysia({ prefix: "/pasien" })
     {
       beforeHandle: rbacMiddleware(PERMISSION.WRITE_PASIEN),
       body: t.Object({
+        noRM: t.String(),
         nama: t.String(),
-        nik: t.String(),
-        tanggalLahir: t.String(),
+        tglLahir: t.String(),
+        jenisKelamin: t.String(),
         alamat: t.String(),
+        noTelp: t.String()
       }),
     }
   );
