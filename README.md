@@ -167,24 +167,93 @@ Buka browser: `http://localhost:5555`
 ## 📁 Struktur Folder
 
 tubes_rbac_klinik/
-├── prisma/
-│ ├── schema.prisma # Skema 10 tabel (A1 - Feby)
-│ └── seed.ts # Seed role, permission, superadmin (A1 - Feby)
-├── src/
-│ ├── application/
-│ │ └── usecases/ # CheckPermission, AssignRole (A2 - Aisyah)
-│ ├── domain/
-│ │ └── repositories/ # Interface kontrak repository
-│ ├── infrastructure/
-│ │ ├── database/
-│ │ │ └── prisma-client.ts # Singleton Prisma Client (A1 - Feby)
-│ │ └── repositories/ # Implementasi Prisma
-│ └── interface/
-│ ├── http/ # Routes Elysia (A2, A3)
-│ └── middleware/ # RBAC Middleware (A3 - Rizma)
-├── .env # Konfigurasi lokal (tidak di-push ke Git)
-├── .env.example # Template konfigurasi
-├── package.json
+├── siklin-api/                         ← Backend (Bun + Prisma + Elysia)
+│   ├── prisma/
+│   │   ├── schema.prisma               ← Schema database RBAC & klinik (A1)
+│   │   └── seed.ts                     ← Seed role, permission, superadmin (A1)
+│   │
+│   ├── src/
+│   │   ├── domain/
+│   │   │   ├── entities/
+│   │   │   │   ├── User.ts             ← Entity User, Role, Permission (A1)
+│   │   │   │   └── Klinik.ts           ← Entity Pasien, RekamMedis, Jadwal (A1)
+│   │   │   │
+│   │   │   └── repositories/
+│   │   │       ├── IUserRepository.ts      ← Contract repository user (A1)
+│   │   │       └── IKlinikRepository.ts    ← Contract repository klinik (A1)
+│   │   │
+│   │   ├── application/
+│   │   │   └── usecases/
+│   │   │       ├── AuthUsecase.ts          ← Login & register user (A2)
+│   │   │       ├── CheckPermission.ts      ← Cek permission user (A2)
+│   │   │       └── AssignRoleToUser.ts     ← Assign/revoke role user (A2)
+│   │   │
+│   │   ├── infrastructure/
+│   │   │   ├── database/
+│   │   │   │   └── prisma-client.ts        ← Singleton Prisma Client (A1)
+│   │   │   │
+│   │   │   └── repositories/
+│   │   │       ├── PrismaUserRepository.ts     ← Repository user Prisma (A2)
+│   │   │       └── PrismaPasienRepository.ts   ← Repository pasien Prisma (A3)
+│   │   │
+│   │   ├── interfaces/
+│   │   │   ├── middleware/
+│   │   │   │   └── RBACMiddleware.ts      ← Middleware authenticate & authorize (A3)
+│   │   │   │
+│   │   │   └── http/
+│   │   │       ├── auth.routes.ts         ← Endpoint login/register (A2)
+│   │   │       ├── pasien.routes.ts       ← CRUD pasien (A3)
+│   │   │       ├── rekammedis.routes.ts   ← Endpoint rekam medis (A3)
+│   │   │       └── role.routes.ts         ← Endpoint role & permission (A3)
+│   │   │
+│   │   ├── config/
+│   │   │   └── constants.ts               ← JWT_SECRET, PORT, ENV (A1)
+│   │   │
+│   │   └── main.ts                        ← Entry point server Elysia (A1)
+│   │
+│   ├── .env                               ← DATABASE_URL, JWT_SECRET
+│   ├── package.json
+│   └── README.md
+│
+├── siklin-fe/                             ← Frontend (React + Tailwind + Vite)
+│   ├── src/
+│   │   ├── context/
+│   │   │   └── AuthContext.tsx            ← Context authentication (A4)
+│   │   │
+│   │   ├── services/
+│   │   │   └── api.ts                     ← Axios instance & API config (A4)
+│   │   │
+│   │   ├── routes/
+│   │   │   ├── ProtectedRoute.tsx         ← Route guard berdasarkan role (A8)
+│   │   │   └── AppRouter.tsx              ← Routing aplikasi (A4)
+│   │   │
+│   │   ├── components/
+│   │   │   ├── Sidebar.tsx                ← Sidebar dinamis berdasarkan role (A5)
+│   │   │   ├── Navbar.tsx                 ← Navbar dashboard (A5)
+│   │   │   ├── RoleAssign.tsx             ← Assign role user (A7)
+│   │   │   ├── PermissionChecklist.tsx    ← Checklist permission (A7)
+│   │   │   └── MedisForm.tsx              ← Form rekam medis (A7)
+│   │   │
+│   │   ├── pages/
+│   │   │   ├── Login.tsx                  ← Halaman login (A4)
+│   │   │   ├── Register.tsx               ← Halaman register (A4)
+│   │   │   ├── Dashboard.tsx              ← Dashboard utama (A5)
+│   │   │   ├── DaftarPasien.tsx           ← Pendaftaran pasien (A6)
+│   │   │   ├── FormPasien.tsx             ← Form input pasien (A6)
+│   │   │   ├── Antrian.tsx                ← Halaman antrian (A6)
+│   │   │   ├── RiwayatKunjungan.tsx       ← Riwayat kunjungan pasien (A6)
+│   │   │   ├── RekamMedis.tsx             ← Rekam medis dokter (A7)
+│   │   │   ├── JadwalDokter.tsx           ← Jadwal praktik dokter (A7)
+│   │   │   ├── Pembayaran.tsx             ← Pembayaran & kasir (A8)
+│   │   │   └── Forbidden.tsx              ← Halaman 403 Forbidden (A8)
+│   │   │
+│   │   ├── .env
+│   │   ├── package.json
+│   │   ├── tailwind.config.js
+│   │   └── vite.config.ts
+│   │
+│   └── README.md
+│
 └── README.md
 
 ---
