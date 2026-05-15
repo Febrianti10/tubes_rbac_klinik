@@ -17,7 +17,8 @@ export const rbacMiddleware = (requiredPermission: string) => {
   const userRepo = new PrismaUserRepository();
   const checkPermissionUseCase = new CheckPermissionUseCase(userRepo);
 
-  return async ({ jwt, headers, set }: any) => {
+  return async (context : any) => {
+    const { jwt, headers, set } = context;
     // 1. Ambil token dari header Authorization: Bearer <token>
     const authHeader =
       headers["authorization"] || headers["Authorization"];
@@ -57,5 +58,13 @@ export const rbacMiddleware = (requiredPermission: string) => {
 
     // 4. Lolos — simpan user ke store agar handler bisa membacanya
     //    Contoh: const { user } = store; di dalam handler
+    context.user = {
+      user: {
+        id: payload.id,
+        username: payload.username,
+        email: payload.email,
+        role: payload.role
+      }
+    };
   };
-};
+ };
