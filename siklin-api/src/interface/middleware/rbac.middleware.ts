@@ -59,12 +59,10 @@ export const rbacMiddleware = (requiredPermission: string) => {
     // 4. Lolos — simpan user ke store agar handler bisa membacanya
     //    Contoh: const { user } = store; di dalam handler
     context.user = {
-      user: {
         id: payload.id,
         username: payload.username,
         email: payload.email,
         role: payload.role
-      }
     };
   };
  };
