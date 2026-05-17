@@ -1,3 +1,4 @@
+import { cors } from "@elysiajs/cors";
 import "dotenv/config";
 import { Elysia } from "elysia";
 import { html } from "@elysiajs/html";
@@ -17,6 +18,7 @@ import { pembayaranRoutes } from "./interface/http/pembayaran.routes";
 const PORT = process.env.PORT || 3000;
 
 const app = new Elysia()
+  .use(cors())
   .use(html()) // Aktifkan dukungan HTML
 
   // --- HEALTH CHECK & LANDING PAGE ---
