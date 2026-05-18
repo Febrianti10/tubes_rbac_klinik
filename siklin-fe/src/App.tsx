@@ -3,6 +3,7 @@ import { AuthProvider } from "./context/AuthContext";
 import DaftarPasien from "./pages/DaftarPasien";
 import Antrian from "./pages/Antrian";
 import RiwayatKunjungan from "./pages/RiwayatKunjungan";
+import Login from "./pages/Login";
 
 function App() {
   return (
@@ -18,8 +19,12 @@ function App() {
           <Link to="/riwayat-kunjungan" className="text-blue-600 hover:underline">
             Riwayat Kunjungan
           </Link>
+          <Link to="/login" className="text-blue-600 hover:underline">
+            Login
+          </Link>
         </nav>
         <Routes>
+           <Route path="/login" element={<Login />} />
           <Route path="/daftar-pasien" element={<DaftarPasien />} />
           <Route path="/antrian" element={<Antrian />} />
           <Route path="/riwayat-kunjungan" element={<RiwayatKunjungan />} />
