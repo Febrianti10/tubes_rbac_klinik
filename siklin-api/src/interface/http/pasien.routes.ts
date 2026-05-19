@@ -4,8 +4,8 @@ import { db } from "../../infrastructure/database/prisma-client";
 
 // Definisi constant permission (sesuaikan dengan yang dibuat A1/A2)
 const PERMISSION = {
-  READ_PASIEN: "READ_PASIEN",
-  WRITE_PASIEN: "WRITE_PASIEN",
+  READ_PASIEN: "PASIEN_READ_ALL",
+  WRITE_PASIEN: "PASIEN_CREATE",
 };
 
 export const pasienRoutes = new Elysia({ prefix: "/pasien" })
@@ -30,35 +30,54 @@ export const pasienRoutes = new Elysia({ prefix: "/pasien" })
   // ENDPOINT 2: Tambah Pasien Baru (Butuh izin WRITE_PASIEN)
   .post(
     "/",
-    async ({ body, user }: any) => {
-        const newPasien = await db.pasien.create({
-            data: {
-                noRM: body.noRM,
-                nama: body.nama,
-                tglLahir: new Date(body.tglLahir),
-                jenisKelamin: body.jenisKelamin,
-                alamat: body.alamat,
-                noTelp: body.noTelp
-            },
+    async ({ body, user, set }: any) => {
+      try {
+        const latest = await db.pasien.findFirst({
+          orderBy: { createdAt: "desc" },
+          select: { noRM: true },
         });
-      // Nanti di sini panggil Prisma untuk insert ke DB
-      return {
-        status: "success",
-        dataPasien: newPasien,
-        message: "Data pasien berhasil ditambahkan",
-        dicatat_oleh: user.username,
-        data: body,
-      };
+
+        const generatedNoRM = (() => {
+          if (body.noRM) return body.noRM;
+          const lastNumber = latest?.noRM?.match(/(\d+)$/)?.[1];
+          const nextNumber = Number(lastNumber || 0) + 1;
+          return `RM-${String(nextNumber).padStart(4, "0")}`;
+        })();
+
+        const newPasien = await db.pasien.create({
+          data: {
+            noRM: generatedNoRM,
+            nama: body.nama,
+            tglLahir: new Date(body.tglLahir),
+            jenisKelamin: body.jenisKelamin,
+            alamat: body.alamat || null,
+            noTelp: body.noTelp || null,
+          },
+        });
+
+        return {
+          status: "success",
+          dataPasien: newPasien,
+          message: "Data pasien berhasil ditambahkan",
+          dicatat_oleh: user.username,
+        };
+      } catch (error: any) {
+        set.status = 400;
+        return {
+          status: "error",
+          message: error.message || "Gagal menambahkan pasien.",
+        };
+      }
     },
     {
       beforeHandle: rbacMiddleware(PERMISSION.WRITE_PASIEN),
       body: t.Object({
-        noRM: t.String(),
+        noRM: t.Optional(t.String()),
         nama: t.String(),
         tglLahir: t.String(),
         jenisKelamin: t.String(),
-        alamat: t.String(),
-        noTelp: t.String()
+        alamat: t.Optional(t.String()),
+        noTelp: t.Optional(t.String())
       }),
     }
   );

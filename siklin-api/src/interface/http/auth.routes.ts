@@ -45,7 +45,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
       // Validasi tipe dari Elysia (lapisan pertama sebelum Joi di use case)
       body: t.Object({
         username: t.String({ minLength: 3 }),
-        name: t.String({ minLength: 3 }),
+        name: t.Optional(t.String({ minLength: 3 })),
         email: t.String({ format: "email" }),
         password: t.String({ minLength: 8 }),
         roleIds: t.Array(t.String()),

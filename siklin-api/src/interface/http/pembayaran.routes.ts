@@ -18,7 +18,26 @@ export const pembayaranRoutes = new Elysia({ prefix: "/pembayaran" })
       orderBy: { createdAt: 'desc' }
     });
   }, {
-    beforeHandle: rbacMiddleware("READ_TAGIHAN")
+    beforeHandle: rbacMiddleware("PEMBAYARAN_READ")
+  })
+  .get("/pending", async () => {
+    return await db.pembayaran.findMany({
+      where: {
+        status: "BELUM_BAYAR",
+      },
+      include: {
+        antrian: {
+          include: {
+            rekamMedis: true,
+            pasien: { select: { nama: true, noRM: true } },
+            jadwal: { include: { dokter: { select: { username: true } } } },
+          },
+        },
+      },
+      orderBy: { createdAt: "asc" },
+    });
+  }, {
+    beforeHandle: rbacMiddleware("PEMBAYARAN_READ")
   })
 
   // 2. Ambil Tagihan Saya (Untuk Pasien melihat riwayat bayarnya sendiri)
@@ -38,7 +57,7 @@ export const pembayaranRoutes = new Elysia({ prefix: "/pembayaran" })
       }
     });
   }, {
-    beforeHandle: rbacMiddleware("READ_OWN_TAGIHAN")
+    beforeHandle: rbacMiddleware("PEMBAYARAN_READ")
   })
 
   // 3. Input Pembayaran (Oleh Kasir)
@@ -46,14 +65,34 @@ export const pembayaranRoutes = new Elysia({ prefix: "/pembayaran" })
   .post("/", async ({ body, set }: any) => {
     try {
       const result = await db.$transaction(async (tx) => {
-        // 1. Buat record pembayaran
-        const bayar = await tx.pembayaran.create({
+        const existing = await tx.pembayaran.findUnique({
+          where: { antrianId: body.antrianId },
+        });
+
+        if (!existing) {
+          throw new Error("Tagihan untuk antrian ini belum dibuat oleh dokter.");
+        }
+
+        if (existing.status === "LUNAS") {
+          throw new Error("Tagihan ini sudah lunas.");
+        }
+
+        const bayar = await tx.pembayaran.update({
+          where: { antrianId: body.antrianId },
           data: {
-            jumlah: body.jumlah,
-            metode: body.metode,
+            jumlah: body.total ?? existing.jumlah,
+            metodeBayar: body.metode,
             status: "LUNAS",
-            antrian: { connect: { id: body.antrianId } }
-          }
+            tglBayar: new Date(),
+          },
+          include: {
+            antrian: {
+              include: {
+                pasien: { select: { nama: true, noRM: true } },
+                jadwal: { include: { dokter: { select: { username: true } } } },
+              },
+            },
+          },
         });
 
         // 2. Update status antrian terkait
@@ -75,11 +114,13 @@ export const pembayaranRoutes = new Elysia({ prefix: "/pembayaran" })
       set.status = 400;
       return { 
         status: "error", 
-        message: "Gagal proses pembayaran. Pastikan ID Antrian benar dan belum dibayar." 
+        message: error instanceof Error
+          ? error.message
+          : "Gagal proses pembayaran. Pastikan ID Antrian benar dan belum dibayar." 
       };
     }
   }, {
-    beforeHandle: rbacMiddleware("CREATE_PEMBAYARAN"),
+    beforeHandle: rbacMiddleware("PEMBAYARAN_CREATE"),
     body: t.Object({
       antrianId: t.String(),
       total: t.Number(),

@@ -1,202 +1,154 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import api from "../services/api";
+import { useAuth } from "../context/AuthContext";
+
+interface PasienItem {
+  id: string;
+  noRM: string;
+  nama: string;
+  tglLahir: string;
+  jenisKelamin: string;
+  alamat?: string;
+  noTelp?: string;
+}
+
+const emptyForm = {
+  nama: "",
+  tglLahir: "",
+  jenisKelamin: "LAKI_LAKI",
+  alamat: "",
+  noTelp: "",
+};
 
 const DaftarPasien = () => {
-  const [form, setForm] = useState({
-    nama: "",
-    nik: "",
-    tanggalLahir: "",
-    jenisKelamin: "LAKI_LAKI",
-    noHp: "",
-    alamat: "",
-  });
+  const { hasPermission } = useAuth();
+  const [pasien, setPasien] = useState<PasienItem[]>([]);
+  const [form, setForm] = useState(emptyForm);
+  const [message, setMessage] = useState("");
 
-  const [loading, setLoading] = useState(false);
+  const canRead = hasPermission("PASIEN_READ_ALL");
+  const canCreate = hasPermission("PASIEN_CREATE");
 
-  const [pesan, setPesan] = useState<{
-    tipe: "sukses" | "error";
-    teks: string;
-  } | null>(null);
-
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
-  ) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    });
+  const fetchPasien = async () => {
+    if (!canRead) return;
+    const res = await api.get("/pasien");
+    setPasien(res.data.data || []);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    fetchPasien().catch(() => setPasien([]));
+  }, []);
+
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    setLoading(true);
-    setPesan(null);
-
-    try {
-      const payload = {
-        noRM: String(form.nik),
-        nama: String(form.nama),
-        tglLahir: String(form.tanggalLahir),
-        jenisKelamin: String(form.jenisKelamin),
-        alamat: String(form.alamat),
-        noTelp: String(form.noHp),
-    };
-
-      console.log("DATA DIKIRIM:", payload);
-
-      await api.post("/pasien", payload);
-
-      setPesan({
-        tipe: "sukses",
-        teks: "Pasien berhasil didaftarkan!",
-      });
-
-      setForm({
-        nama: "",
-        nik: "",
-        tanggalLahir: "",
-        jenisKelamin: "LAKI_LAKI",
-        noHp: "",
-        alamat: "",
-      });
-    } catch (err: any) {
-      console.log("ERROR:", err.response?.data);
-
-      setPesan({
-        tipe: "error",
-        teks:
-          JSON.stringify(err.response?.data) ||
-          err.message ||
-          "Gagal mendaftarkan pasien.",
-      });
-    } finally {
-      setLoading(false);
-    }
+    await api.post("/pasien", form);
+    setForm(emptyForm);
+    setMessage("Data pasien berhasil ditambahkan. Nomor RM dibuat otomatis oleh sistem.");
+    await fetchPasien();
   };
 
   return (
-    <div className="max-w-xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6 text-gray-800">
-        Daftar Pasien Baru
-      </h1>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-3xl font-bold text-slate-900">Manajemen Pasien</h2>
+        <p className="mt-2 text-sm text-slate-500">
+          Petugas pendaftaran cukup mengisi biodata inti pasien. Nomor rekam medis dibuat otomatis agar konsisten.
+        </p>
+      </div>
 
-      {pesan && (
-        <div
-          className={`mb-4 p-3 rounded-lg text-sm ${
-            pesan.tipe === "sukses"
-              ? "bg-green-100 text-green-700"
-              : "bg-red-100 text-red-700"
-          }`}
-        >
-          {pesan.teks}
+      {message ? (
+        <div className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          {message}
         </div>
-      )}
+      ) : null}
 
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white border border-gray-200 rounded-xl p-6 space-y-4 shadow-sm"
-      >
-        <div>
-          <label className="block text-sm mb-1 text-gray-700">
-            Nama Lengkap
-          </label>
+      <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+        {canCreate ? (
+          <section className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
+            <h3 className="text-xl font-semibold text-slate-900">Form pasien baru</h3>
+            <form onSubmit={submit} className="mt-5 space-y-4">
+              {[
+                { key: "nama", label: "Nama Pasien" },
+                { key: "tglLahir", label: "Tanggal Lahir", type: "date" },
+                { key: "alamat", label: "Alamat" },
+                { key: "noTelp", label: "No. Telepon" },
+              ].map((field) => (
+                <div key={field.key}>
+                  <label className="mb-2 block text-sm font-medium text-slate-700">
+                    {field.label}
+                  </label>
+                  <input
+                    type={field.type || "text"}
+                    value={form[field.key as keyof typeof form]}
+                    onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
+                    className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                    required={field.key !== "alamat" && field.key !== "noTelp"}
+                  />
+                </div>
+              ))}
 
-          <input
-            type="text"
-            name="nama"
-            value={form.nama}
-            onChange={handleChange}
-            required
-            className="w-full border border-gray-300 rounded-lg px-3 py-2"
-          />
-        </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  Jenis Kelamin
+                </label>
+                <select
+                  value={form.jenisKelamin}
+                  onChange={(e) => setForm({ ...form, jenisKelamin: e.target.value })}
+                  className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                >
+                  <option value="LAKI_LAKI">Laki-laki</option>
+                  <option value="PEREMPUAN">Perempuan</option>
+                </select>
+              </div>
 
-        <div>
-          <label className="block text-sm mb-1 text-gray-700">
-            NIK
-          </label>
+              <div className="rounded-2xl bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                Nomor RM akan dibuat otomatis oleh sistem saat data disimpan.
+              </div>
 
-          <input
-            type="text"
-            name="nik"
-            value={form.nik}
-            onChange={handleChange}
-            required
-            maxLength={16}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2"
-          />
-        </div>
+              <button
+                type="submit"
+                className="w-full rounded-2xl bg-cyan-600 px-4 py-3 font-semibold text-white"
+              >
+                Simpan pasien
+              </button>
+            </form>
+          </section>
+        ) : null}
 
-        <div>
-          <label className="block text-sm mb-1 text-gray-700">
-            Tanggal Lahir
-          </label>
-
-          <input
-            type="date"
-            name="tanggalLahir"
-            value={form.tanggalLahir}
-            onChange={handleChange}
-            required
-            className="w-full border border-gray-300 rounded-lg px-3 py-2"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm mb-1 text-gray-700">
-            Jenis Kelamin
-          </label>
-
-          <select
-            name="jenisKelamin"
-            value={form.jenisKelamin}
-            onChange={handleChange}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2"
-          >
-            <option value="LAKI_LAKI">Laki-laki</option>
-            <option value="PEREMPUAN">Perempuan</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm mb-1 text-gray-700">
-            No HP
-          </label>
-
-          <input
-            type="text"
-            name="noHp"
-            value={form.noHp}
-            onChange={handleChange}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm mb-1 text-gray-700">
-            Alamat
-          </label>
-
-          <textarea
-            name="alamat"
-            value={form.alamat}
-            onChange={handleChange}
-            rows={3}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2"
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition"
-        >
-          {loading ? "Menyimpan..." : "Daftarkan Pasien"}
-        </button>
-      </form>
+        <section className="rounded-3xl border border-slate-200 p-6">
+          <h3 className="text-xl font-semibold text-slate-900">Daftar pasien</h3>
+          {!canRead ? (
+            <p className="mt-4 text-sm text-slate-500">
+              Role ini tidak memiliki akses untuk melihat semua data pasien.
+            </p>
+          ) : (
+            <div className="mt-5 overflow-x-auto">
+              <table className="min-w-full text-left text-sm">
+                <thead className="border-b border-slate-200 text-slate-500">
+                  <tr>
+                    <th className="px-3 py-3">No. RM</th>
+                    <th className="px-3 py-3">Nama</th>
+                    <th className="px-3 py-3">Lahir</th>
+                    <th className="px-3 py-3">Kontak</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pasien.map((item) => (
+                    <tr key={item.id} className="border-b border-slate-100">
+                      <td className="px-3 py-3">{item.noRM}</td>
+                      <td className="px-3 py-3">{item.nama}</td>
+                      <td className="px-3 py-3">
+                        {new Date(item.tglLahir).toLocaleDateString("id-ID")}
+                      </td>
+                      <td className="px-3 py-3">{item.noTelp || "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   );
 };

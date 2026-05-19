@@ -1,40 +1,71 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
-interface User {
+export interface AuthUser {
   id: string;
-  nama: string;
-  role: string;
+  username: string;
+  name: string;
+  roles: string[];
+  permissions: string[];
 }
 
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
   token: string | null;
-  login: (token: string, user: User) => void;
+  isAuthenticated: boolean;
+  hasRole: (role: string) => boolean;
+  hasPermission: (permission: string) => boolean;
+  login: (token: string, user: AuthUser) => void;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [token, setToken] = useState<string | null>(
-    localStorage.getItem("token")
-  );
-  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem("token"));
+  const [user, setUser] = useState<AuthUser | null>(() => {
+    const savedUser = localStorage.getItem("user");
+    return savedUser ? (JSON.parse(savedUser) as AuthUser) : null;
+  });
 
-  const login = (token: string, user: User) => {
+  useEffect(() => {
+    if (!token) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      return;
+    }
+
     localStorage.setItem("token", token);
-    setToken(token);
-    setUser(user);
+    if (user) {
+      localStorage.setItem("user", JSON.stringify(user));
+    }
+  }, [token, user]);
+
+  const login = (nextToken: string, nextUser: AuthUser) => {
+    setToken(nextToken);
+    setUser(nextUser);
   };
 
   const logout = () => {
-    localStorage.removeItem("token");
     setToken(null);
     setUser(null);
   };
 
+  const hasRole = (role: string) => user?.roles.includes(role) ?? false;
+  const hasPermission = (permission: string) =>
+    user?.permissions.includes(permission) ?? false;
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        isAuthenticated: Boolean(token),
+        hasRole,
+        hasPermission,
+        login,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

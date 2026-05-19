@@ -1,54 +1,73 @@
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
-
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import Login from "./pages/Login";
+import Forbidden from "./pages/Forbidden";
+import ProtectedRoute from "./routes/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import DaftarPasien from "./pages/DaftarPasien";
 import Antrian from "./pages/Antrian";
 import RiwayatKunjungan from "./pages/RiwayatKunjungan";
-import Login from "./pages/Login";
+import Pembayaran from "./pages/Pembayaran";
+import JadwalPage from "./pages/JadwalPage";
+import UsersPage from "./pages/UsersPage";
+import AppShell from "./pages/AppShell";
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <nav className="bg-white border-b border-gray-200 px-6 py-3 flex gap-6 text-sm">
-          <Link to="/dashboard" className="text-blue-600 hover:underline">
-            Dashboard
-          </Link>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/forbidden" element={<Forbidden />} />
 
-          <Link to="/login" className="text-blue-600 hover:underline">
-            Login
-          </Link>
+        <Route element={<ProtectedRoute />}>
+          <Route element={<AppShell />}>
+            <Route index element={<Dashboard />} />
 
-          <Link to="/daftar-pasien" className="text-blue-600 hover:underline">
-            Daftar Pasien
-          </Link>
+            <Route
+              element={<ProtectedRoute requiredPermissions={["PASIEN_READ_ALL"]} />}
+            >
+              <Route path="/pasien" element={<DaftarPasien />} />
+            </Route>
 
-          <Link to="/antrian" className="text-blue-600 hover:underline">
-            Antrian
-          </Link>
+            <Route
+              element={<ProtectedRoute requiredPermissions={["ANTRIAN_READ"]} />}
+            >
+              <Route path="/antrian" element={<Antrian />} />
+            </Route>
 
-          <Link
-            to="/riwayat-kunjungan"
-            className="text-blue-600 hover:underline"
-          >
-            Riwayat Kunjungan
-          </Link>
-        </nav>
+            <Route
+              element={<ProtectedRoute requiredPermissions={["JADWAL_READ"]} />}
+            >
+              <Route path="/jadwal" element={<JadwalPage />} />
+            </Route>
 
-        <Routes>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/daftar-pasien" element={<DaftarPasien />} />
-          <Route path="/antrian" element={<Antrian />} />
-          <Route
-            path="/riwayat-kunjungan"
-            element={<RiwayatKunjungan />}
-          />
-          <Route path="/" element={<Dashboard />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+            <Route
+              element={<ProtectedRoute requiredPermissions={["PEMBAYARAN_READ"]} />}
+            >
+              <Route path="/pembayaran" element={<Pembayaran />} />
+            </Route>
+
+            <Route
+              element={
+                <ProtectedRoute
+                  allowedRoles={["SUPERADMIN", "DOKTER", "PASIEN", "PERAWAT"]}
+                />
+              }
+            >
+              <Route path="/rekam-medis" element={<RiwayatKunjungan />} />
+            </Route>
+
+            <Route
+              path="/users"
+              element={<ProtectedRoute requiredPermissions={["USER_ALL"]} />}
+            >
+              <Route index element={<UsersPage />} />
+            </Route>
+          </Route>
+        </Route>
+
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

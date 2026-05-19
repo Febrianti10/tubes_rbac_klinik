@@ -2,23 +2,31 @@ import { cors } from "@elysiajs/cors";
 import "dotenv/config";
 import { Elysia } from "elysia";
 import { html } from "@elysiajs/html";
-import { permissionRoutes } from "./interface/http/permission.routes";
-import { roleRoutes } from "./interface/http/role.routes";
-import { userRoutes } from "./interface/http/user.routes";
-import { authRoutes } from "./interface/http/auth.routes";
-import { db } from "./infrastructure/database/prisma-client";
-import { healthHtmlTemplate } from "./infrastructure/views/health-template";
-import { pasienRoutes } from "./interface/http/pasien.routes";
-import { rekamMedisRoutes } from "./interface/http/rekammedis.routes";
-import { antrianRoutes } from "./interface/http/antrian.routes";
-import { jadwalRoutes } from "./interface/http/jadwal.routes";
-import { pembayaranRoutes } from "./interface/http/pembayaran.routes";
+import { jwt } from "@elysiajs/jwt";
+import { permissionRoutes } from "./interface/http/permission.routes.ts";
+import { roleRoutes } from "./interface/http/role.routes.ts";
+import { userRoutes } from "./interface/http/user.routes.ts";
+import { authRoutes } from "./interface/http/auth.routes.ts";
+import { db } from "./infrastructure/database/prisma-client.ts";
+import { healthHtmlTemplate } from "./infrastructure/views/health-template.ts";
+import { pasienRoutes } from "./interface/http/pasien.routes.ts";
+import { rekamMedisRoutes } from "./interface/http/rekammedis.routes.ts";
+import { antrianRoutes } from "./interface/http/antrian.routes.ts";
+import { jadwalRoutes } from "./interface/http/jadwal.routes.ts";
+import { pembayaranRoutes } from "./interface/http/pembayaran.routes.ts";
 
 // Ambil port dari .env atau gunakan 3000 sebagai default
 const PORT = process.env.PORT || 3000;
 
 const app = new Elysia()
   .use(cors())
+  .use(
+    jwt({
+      name: "jwt",
+      secret: process.env.JWT_SECRET || "fallback_secret_jika_env_lupa_diset",
+      exp: process.env.JWT_EXP || "1d",
+    }),
+  )
   .use(html()) // Aktifkan dukungan HTML
 
   // --- HEALTH CHECK & LANDING PAGE ---

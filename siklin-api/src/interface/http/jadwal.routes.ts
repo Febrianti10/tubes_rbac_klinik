@@ -21,7 +21,7 @@ export const jadwalRoutes = new Elysia({ prefix: "/jadwal" })
     });
   }, { 
     // DI SINI TEMPATNYA:
-    beforeHandle: rbacMiddleware("READ_JADWAL") 
+    beforeHandle: rbacMiddleware("JADWAL_READ") 
   })
   // 2. Tambah Jadwal Baru (Hanya Admin / Dokter)
   .post("/", async ({ body, set }: any) => {
@@ -41,7 +41,7 @@ export const jadwalRoutes = new Elysia({ prefix: "/jadwal" })
       return { status: "error", message: "Gagal membuat jadwal." };
     }
   }, {
-    beforeHandle: rbacMiddleware("CREATE_JADWAL"),
+    beforeHandle: rbacMiddleware("JADWAL_MANAGE"),
     body: t.Object({
       hari: t.String(),         // Contoh: "Senin"
       jamMulai: t.String(),     // Contoh: "08:00"
@@ -58,7 +58,7 @@ export const jadwalRoutes = new Elysia({ prefix: "/jadwal" })
       data: body
     });
   }, {
-    beforeHandle: rbacMiddleware("UPDATE_JADWAL"),
+    beforeHandle: rbacMiddleware("JADWAL_MANAGE"),
     body: t.Object({
       hari: t.Optional(t.String()),
       kuota: t.Optional(t.Number()),
@@ -73,5 +73,5 @@ export const jadwalRoutes = new Elysia({ prefix: "/jadwal" })
       where: { id: params.id }
     });
   }, {
-    beforeHandle: rbacMiddleware("DELETE_JADWAL")
+    beforeHandle: rbacMiddleware("JADWAL_MANAGE")
   });

@@ -1,157 +1,190 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
+import { useAuth } from "../context/AuthContext";
 
-interface Antrian {
+interface JadwalItem {
+  id: string;
+  hari: string;
+  jamMulai: string;
+  jamSelesai: string;
+  dokter?: { username?: string };
+  _count?: { antrian: number };
+  kuota: number;
+}
+
+interface AntrianItem {
   id: string;
   nomorAntrian: number;
   status: string;
-  pasien: { nama: string };
-  jadwal: { tanggal: string; dokter?: { nama: string } };
+  pasien?: { nama?: string; noRM?: string };
+  jadwal?: { hari?: string; dokter?: { username?: string } };
+  pembayaran?: { status?: string } | null;
+  rekamMedis?: { id: string } | null;
 }
 
 const Antrian = () => {
-  const [antrian, setAntrian] = useState<Antrian[]>([]);
-  const [jadwalList, setJadwalList] = useState<any[]>([]);
-  const [pasienList, setPasienList] = useState<any[]>([]);
-  const [form, setForm] = useState({ pasienId: "", jadwalId: "" });
-  const [loading, setLoading] = useState(false);
-  const [pesan, setPesan] = useState<{
-    tipe: "sukses" | "error";
-    teks: string;
-  } | null>(null);
+  const { hasPermission } = useAuth();
+  const [antrian, setAntrian] = useState<AntrianItem[]>([]);
+  const [antrianSaya, setAntrianSaya] = useState<AntrianItem[]>([]);
+  const [jadwal, setJadwal] = useState<JadwalItem[]>([]);
+  const [jadwalId, setJadwalId] = useState("");
+  const [message, setMessage] = useState("");
 
-  const fetchAntrian = async () => {
-    try {
-      const res = await api.get("/antrian");
-      setAntrian(res.data.data || []);
-    } catch {
-      setAntrian([]);
+  const canRead = hasPermission("ANTRIAN_READ");
+  const canCreate = hasPermission("ANTRIAN_CREATE");
+  const canManage = hasPermission("ANTRIAN_MANAGE");
+
+  const fetchData = async () => {
+    if (canRead) {
+      const antrianRes = await api.get("/antrian");
+      setAntrian(Array.isArray(antrianRes.data) ? antrianRes.data : antrianRes.data.data || []);
+    }
+
+    if (canCreate) {
+      const myRes = await api.get("/antrian/saya");
+      setAntrianSaya(myRes.data.data || []);
+    }
+
+    if (hasPermission("JADWAL_READ")) {
+      const jadwalRes = await api.get("/jadwal");
+      setJadwal(Array.isArray(jadwalRes.data) ? jadwalRes.data : jadwalRes.data.data || []);
     }
   };
 
   useEffect(() => {
-    fetchAntrian();
-    api
-      .get("/jadwal")
-      .then((r) => setJadwalList(r.data.data || []))
-      .catch(() => {});
-    api
-      .get("/pasien")
-      .then((r) => setPasienList(r.data.data || []))
-      .catch(() => {});
+    fetchData().catch(() => {
+      setAntrian([]);
+      setJadwal([]);
+    });
   }, []);
 
-  const handleDaftar = async (e: React.FormEvent) => {
+  const daftarAntrian = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setPesan(null);
-    try {
-      await api.post("/antrian", form);
-      setPesan({ tipe: "sukses", teks: "Antrian berhasil dibuat!" });
-      setForm({ pasienId: "", jadwalId: "" });
-      fetchAntrian();
-    } catch (err: any) {
-      setPesan({
-        tipe: "error",
-        teks: err.response?.data?.message || "Gagal membuat antrian.",
-      });
-    } finally {
-      setLoading(false);
-    }
+    await api.post("/antrian", { jadwalId });
+    setMessage("Nomor antrian berhasil diambil.");
+    setJadwalId("");
+    await fetchData();
   };
 
-  const badgeWarna = (status: string) => {
-    if (status === "MENUNGGU") return "bg-yellow-100 text-yellow-700";
-    if (status === "DIPANGGIL") return "bg-blue-100 text-blue-700";
-    if (status === "SELESAI") return "bg-green-100 text-green-700";
-    return "bg-gray-100 text-gray-600";
+  const updateStatus = async (id: string, status: string) => {
+    await api.patch(`/antrian/${id}/status`, { status });
+    await fetchData();
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 space-y-6">
-      <h1 className="text-2xl font-semibold text-gray-800">Antrian Pasien</h1>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-3xl font-bold text-slate-900">Modul Antrian</h2>
+        <p className="mt-2 text-sm text-slate-500">
+          Pasien dapat mengambil nomor antrian, sedangkan perawat atau admin dapat memantau dan mengubah statusnya.
+        </p>
+      </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl p-5">
-        <h2 className="text-base font-medium mb-4 text-gray-700">
-          Tambah ke Antrian
-        </h2>
-        {pesan && (
-          <div
-            className={`mb-3 p-3 rounded-lg text-sm ${
-              pesan.tipe === "sukses"
-                ? "bg-green-50 text-green-700"
-                : "bg-red-50 text-red-700"
-            }`}
-          >
-            {pesan.teks}
+      {message ? <div className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</div> : null}
+
+      {canCreate ? (
+        <section className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
+          <h3 className="text-xl font-semibold text-slate-900">Ambil antrian baru</h3>
+          <form onSubmit={daftarAntrian} className="mt-5 flex flex-col gap-4 md:flex-row">
+            <select
+              value={jadwalId}
+              onChange={(e) => setJadwalId(e.target.value)}
+              required
+              className="flex-1 rounded-2xl border border-slate-300 px-4 py-3"
+            >
+              <option value="">Pilih jadwal dokter</option>
+              {jadwal.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.hari} | {item.jamMulai}-{item.jamSelesai} | {item.dokter?.username} | {item._count?.antrian || 0}/{item.kuota}
+                </option>
+              ))}
+            </select>
+            <button type="submit" className="rounded-2xl bg-cyan-600 px-5 py-3 font-semibold text-white">
+              Ambil nomor
+            </button>
+          </form>
+        </section>
+      ) : null}
+
+      {canCreate ? (
+        <section className="rounded-3xl border border-slate-200 p-6">
+          <h3 className="text-xl font-semibold text-slate-900">Riwayat antrian saya</h3>
+          <div className="mt-5 overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="border-b border-slate-200 text-slate-500">
+                <tr>
+                  <th className="px-3 py-3">No</th>
+                  <th className="px-3 py-3">Dokter</th>
+                  <th className="px-3 py-3">Status</th>
+                  <th className="px-3 py-3">Tagihan</th>
+                </tr>
+              </thead>
+              <tbody>
+                {antrianSaya.map((item) => (
+                  <tr key={item.id} className="border-b border-slate-100">
+                    <td className="px-3 py-3">#{item.nomorAntrian}</td>
+                    <td className="px-3 py-3">{item.jadwal?.dokter?.username || "-"}</td>
+                    <td className="px-3 py-3">{item.status}</td>
+                    <td className="px-3 py-3">{item.pembayaran?.status || "Belum ada"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
+
+      <section className="rounded-3xl border border-slate-200 p-6">
+        <h3 className="text-xl font-semibold text-slate-900">Daftar antrian hari ini</h3>
+        {!canRead ? (
+          <p className="mt-4 text-sm text-slate-500">Role ini tidak memiliki akses melihat seluruh antrian.</p>
+        ) : (
+          <div className="mt-5 overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="border-b border-slate-200 text-slate-500">
+                <tr>
+                  <th className="px-3 py-3">No</th>
+                  <th className="px-3 py-3">Pasien</th>
+                  <th className="px-3 py-3">Jadwal</th>
+                  <th className="px-3 py-3">Status</th>
+                  <th className="px-3 py-3">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {antrian.map((item) => (
+                  <tr key={item.id} className="border-b border-slate-100">
+                    <td className="px-3 py-3 font-semibold">#{item.nomorAntrian}</td>
+                    <td className="px-3 py-3">{item.pasien?.nama || "-"}</td>
+                    <td className="px-3 py-3">
+                      {item.jadwal?.hari || "-"} / {item.jadwal?.dokter?.username || "-"}
+                    </td>
+                    <td className="px-3 py-3">{item.status}</td>
+                    <td className="px-3 py-3">
+                      {canManage ? (
+                        <div className="flex gap-2">
+                          {["MENUNGGU", "DIPERIKSA", "SELESAI"].map((status) => (
+                            <button
+                              key={status}
+                              type="button"
+                              onClick={() => updateStatus(item.id, status)}
+                              className="rounded-xl border border-slate-300 px-3 py-2 text-xs"
+                              disabled={status === "SELESAI" && !item.rekamMedis && !item.pembayaran}
+                            >
+                              {status}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-slate-400">Lihat saja</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
-        <form onSubmit={handleDaftar} className="space-y-3">
-          <select
-            value={form.pasienId}
-            onChange={(e) => setForm({ ...form, pasienId: e.target.value })}
-            required
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-          >
-            <option value="">-- Pilih Pasien --</option>
-            {pasienList.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.nama} — {p.nik}
-              </option>
-            ))}
-          </select>
-          <select
-            value={form.jadwalId}
-            onChange={(e) => setForm({ ...form, jadwalId: e.target.value })}
-            required
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-          >
-            <option value="">-- Pilih Jadwal --</option>
-            {jadwalList.map((j) => (
-              <option key={j.id} value={j.id}>
-                {j.tanggal} — {j.dokter?.nama}
-              </option>
-            ))}
-          </select>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition"
-          >
-            {loading ? "Menyimpan..." : "Tambah Antrian"}
-          </button>
-        </form>
-      </div>
-
-      <div className="space-y-3">
-        {antrian.length === 0 ? (
-          <p className="text-sm text-gray-500 text-center py-8">
-            Belum ada antrian hari ini.
-          </p>
-        ) : (
-          antrian.map((a) => (
-            <div
-              key={a.id}
-              className="bg-white border border-gray-200 rounded-xl px-5 py-4 flex items-center gap-4"
-            >
-              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold text-lg">
-                {a.nomorAntrian}
-              </div>
-              <div className="flex-1">
-                <p className="font-medium text-sm text-gray-800">
-                  {a.pasien?.nama}
-                </p>
-                <p className="text-xs text-gray-500">{a.jadwal?.tanggal}</p>
-              </div>
-              <span
-                className={`text-xs px-2 py-1 rounded-full font-medium ${badgeWarna(a.status)}`}
-              >
-                {a.status}
-              </span>
-            </div>
-          ))
-        )}
-      </div>
+      </section>
     </div>
   );
 };

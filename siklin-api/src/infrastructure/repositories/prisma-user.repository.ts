@@ -78,7 +78,6 @@ export class PrismaUserRepository implements IUserRepository {
         data: {
           username: data.username,
           email: data.email,
-          name: data.name,
           password: data.password,
           roles: {
             create: data.roleIds.map((rId) => ({
@@ -102,7 +101,6 @@ export class PrismaUserRepository implements IUserRepository {
         data: {
           username: data.username,
           email: data.email,
-          name: data.name,
           password: data.password,
           roles: data.roleIds ? {
             deleteMany: {}, // Menghapus relasi lama di tabel UserRole
