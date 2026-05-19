@@ -10,6 +10,9 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <nav className="bg-white border-b border-gray-200 px-6 py-3 flex gap-6 text-sm">
+           <Link to="/login" className="text-blue-600 hover:underline">
+            Login
+          </Link>
           <Link to="/daftar-pasien" className="text-blue-600 hover:underline">
             Daftar Pasien
           </Link>
@@ -18,9 +21,6 @@ function App() {
           </Link>
           <Link to="/riwayat-kunjungan" className="text-blue-600 hover:underline">
             Riwayat Kunjungan
-          </Link>
-          <Link to="/login" className="text-blue-600 hover:underline">
-            Login
           </Link>
         </nav>
         <Routes>

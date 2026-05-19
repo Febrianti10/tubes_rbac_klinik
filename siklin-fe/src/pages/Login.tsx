@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 const Login = () => {
   const { login } = useAuth();
 
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
   const handleLogin = async (
@@ -15,13 +15,14 @@ const Login = () => {
 
     try {
       const response = await api.post("/auth/login", {
-        email,
+        username,
         password,
       });
 
-      const token = response.data.token;
+      const token = response.data.accessToken;
+      const user = response.data.user;
 
-      login(token);
+      login(token, user);
 
       alert("Login berhasil");
     } catch (error) {
@@ -41,11 +42,11 @@ const Login = () => {
         </h1>
 
         <input
-          type="email"
-          placeholder="Email"
+          type="text"
+          placeholder="Username"
           className="w-full border p-3 rounded mb-4"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
         />
 
         <input
