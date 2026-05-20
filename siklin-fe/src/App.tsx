@@ -11,6 +11,9 @@ import JadwalPage from "./pages/JadwalPage";
 import UsersPage from "./pages/UsersPage";
 import AppShell from "./pages/AppShell";
 
+// TAMBAHAN IMPORT BARU (Tanpa menghapus import lama)
+import { JadwalDokter } from "./pages/JadwalDokter";
+
 function App() {
   return (
     <BrowserRouter>
@@ -37,7 +40,8 @@ function App() {
             <Route
               element={<ProtectedRoute requiredPermissions={["JADWAL_READ"]} />}
             >
-              <Route path="/jadwal" element={<JadwalPage />} />
+              {/* REVISI: Mengubah element dari <JadwalPage /> menjadi <JadwalDokter /> */}
+              <Route path="/jadwal" element={<JadwalDokter />} />
             </Route>
 
             <Route

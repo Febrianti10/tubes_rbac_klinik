@@ -16,7 +16,8 @@ interface JadwalItem {
 interface UserItem {
   id: string;
   username: string;
-  roles?: Array<{ role?: { name?: string } }>;
+  roles?: any; // Dibuat 'any' agar fleksibel menerima bentuk data apa saja dari backend
+  role?: any;
 }
 
 const emptyForm = {
@@ -38,21 +39,54 @@ const JadwalPage = () => {
 
   const fetchData = async () => {
     if (canRead) {
-      const jadwalRes = await api.get("/jadwal");
-      const jadwalData = Array.isArray(jadwalRes.data) ? jadwalRes.data : jadwalRes.data.data || [];
-      setJadwal(jadwalData);
+      try {
+        const jadwalRes = await api.get("/jadwal");
+        const jadwalData = Array.isArray(jadwalRes.data) ? jadwalRes.data : jadwalRes.data.data || [];
+        setJadwal(jadwalData);
+      } catch (error) {
+        console.error("Gagal mengambil data jadwal:", error);
+      }
     }
 
     if (canManage && hasPermission("USER_ALL")) {
-      const usersRes = await api.get("/users");
-      const dokterList = (Array.isArray(usersRes.data) ? usersRes.data : []).filter((item: UserItem) =>
-        item.roles?.some((role) => role.role?.name === "DOKTER")
-      );
-      setDokter(dokterList);
-      if (dokterList.length === 1) {
-        setForm((prev) => ({ ...prev, dokterId: dokterList[0].id }));
+      try {
+        const usersRes = await api.get("/users");
+        
+        // Membaca data users dengan aman
+        const usersData = Array.isArray(usersRes.data) ? usersRes.data : usersRes.data.data || [];
+        
+        // 🚀 SUPER FILTER: Mencari dokter dengan berbagai kemungkinan bentuk data
+        const dokterList = usersData.filter((item: UserItem) => {
+          // Jika backend mengirimkan role langsung (bukan array)
+          if (item.role) {
+            if (typeof item.role === "string" && item.role.toUpperCase() === "DOKTER") return true;
+            if (item.role.name && typeof item.role.name === "string" && item.role.name.toUpperCase() === "DOKTER") return true;
+          }
+
+          // Jika backend mengirimkan roles dalam bentuk array
+          if (item.roles && Array.isArray(item.roles)) {
+            return item.roles.some((r: any) => {
+              if (typeof r === "string") return r.toUpperCase() === "DOKTER"; // Format: ["DOKTER"]
+              if (r?.name && typeof r.name === "string") return r.name.toUpperCase() === "DOKTER"; // Format: [{ name: "Dokter" }]
+              if (r?.role?.name && typeof r.role.name === "string") return r.role.name.toUpperCase() === "DOKTER"; // Format: [{ role: { name: "Dokter" } }]
+              return false;
+            });
+          }
+
+          return false;
+        });
+        
+        setDokter(dokterList);
+        
+        // Otomatis pilih jika hanya ada 1 dokter
+        if (dokterList.length === 1) {
+          setForm((prev) => ({ ...prev, dokterId: dokterList[0].id }));
+        }
+      } catch (error) {
+        console.error("Gagal mengambil data dokter:", error);
       }
     } else if (canManage && hasRole("DOKTER") && user?.id) {
+      // Jika yang login adalah dokter, otomatis set ID dia sendiri
       setForm((prev) => ({ ...prev, dokterId: user.id }));
     }
   };
@@ -66,9 +100,13 @@ const JadwalPage = () => {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await api.post("/jadwal", { ...form, kuota: Number(form.kuota) });
-    setForm((prev) => ({ ...emptyForm, dokterId: prev.dokterId }));
-    await fetchData();
+    try {
+      await api.post("/jadwal", { ...form, kuota: Number(form.kuota) });
+      setForm((prev) => ({ ...emptyForm, dokterId: prev.dokterId }));
+      await fetchData();
+    } catch (error) {
+      console.error("Gagal menyimpan jadwal:", error);
+    }
   };
 
   return (
@@ -88,7 +126,7 @@ const JadwalPage = () => {
               value={form.hari}
               onChange={(e) => setForm({ ...form, hari: e.target.value })}
               className="rounded-2xl border border-slate-300 px-4 py-3"
-              placeholder="Hari"
+              placeholder="Hari (cth: Senin)"
               required
             />
             <input
@@ -113,14 +151,15 @@ const JadwalPage = () => {
               className="rounded-2xl border border-slate-300 px-4 py-3"
               required
             />
+            
             {hasPermission("USER_ALL") ? (
               <select
                 value={form.dokterId}
                 onChange={(e) => setForm({ ...form, dokterId: e.target.value })}
-                className="rounded-2xl border border-slate-300 px-4 py-3"
+                className="rounded-2xl border border-slate-300 px-4 py-3 cursor-pointer bg-white"
                 required
               >
-                <option value="">Pilih dokter</option>
+                <option value="" disabled>-- Pilih Dokter --</option>
                 {dokter.map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.username}
@@ -128,7 +167,8 @@ const JadwalPage = () => {
                 ))}
               </select>
             ) : null}
-            <button type="submit" className="rounded-2xl bg-cyan-600 px-4 py-3 font-semibold text-white xl:col-span-5">
+            
+            <button type="submit" className="rounded-2xl bg-cyan-600 px-4 py-3 font-semibold text-white xl:col-span-5 hover:bg-cyan-700 transition">
               Simpan jadwal
             </button>
           </form>
@@ -151,14 +191,22 @@ const JadwalPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {jadwal.map((item) => (
-                  <tr key={item.id} className="border-b border-slate-100">
-                    <td className="px-3 py-3">{item.hari}</td>
-                    <td className="px-3 py-3">{item.jamMulai} - {item.jamSelesai}</td>
-                    <td className="px-3 py-3">{item.dokter?.username || "-"}</td>
-                    <td className="px-3 py-3">{item._count?.antrian || 0}/{item.kuota}</td>
+                {jadwal.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-3 py-4 text-center text-slate-500">
+                      Belum ada jadwal yang tersedia.
+                    </td>
                   </tr>
-                ))}
+                ) : (
+                  jadwal.map((item) => (
+                    <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50">
+                      <td className="px-3 py-3">{item.hari}</td>
+                      <td className="px-3 py-3">{item.jamMulai} - {item.jamSelesai}</td>
+                      <td className="px-3 py-3 font-medium text-slate-700">{item.dokter?.username || "-"}</td>
+                      <td className="px-3 py-3">{item._count?.antrian || 0}/{item.kuota}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

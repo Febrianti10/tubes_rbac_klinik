@@ -63,7 +63,6 @@ const app = new Elysia()
     });
   })
 
-  // --- API ROUTES ---
   .group("/api/v1", (app) =>
     app
       .use(authRoutes)
@@ -75,8 +74,7 @@ const app = new Elysia()
       .use(antrianRoutes)
       .use(jadwalRoutes)
       .use(pembayaranRoutes)
-  );
-
+);
 app.routes.forEach(route => {
     console.log(`${route.method} ${route.path}`);
 });
