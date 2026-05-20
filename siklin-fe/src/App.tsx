@@ -9,8 +9,7 @@ import RiwayatKunjungan from "./pages/RiwayatKunjungan"; // Komponen milik teman
 import Pembayaran from "./pages/Pembayaran";
 import UsersPage from "./pages/UsersPage";
 import AppShell from "./pages/AppShell";
-import { JadwalDokter } from "./pages/JadwalDokter";
-
+import JadwalDokter from "./pages/JadwalDokter";
 // =========================================================================
 // IMPORT HALAMAN REKAM MEDIS TUGAS ANDA
 // =========================================================================
