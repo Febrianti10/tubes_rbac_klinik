@@ -5,14 +5,16 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import DaftarPasien from "./pages/DaftarPasien";
 import Antrian from "./pages/Antrian";
-import RiwayatKunjungan from "./pages/RiwayatKunjungan";
+import RiwayatKunjungan from "./pages/RiwayatKunjungan"; // Komponen milik teman Anda
 import Pembayaran from "./pages/Pembayaran";
-import JadwalPage from "./pages/JadwalPage";
 import UsersPage from "./pages/UsersPage";
 import AppShell from "./pages/AppShell";
-
-// TAMBAHAN IMPORT BARU (Tanpa menghapus import lama)
 import { JadwalDokter } from "./pages/JadwalDokter";
+
+// =========================================================================
+// IMPORT HALAMAN REKAM MEDIS TUGAS ANDA
+// =========================================================================
+import RekamMedis from "./pages/RekamMedis"; 
 
 function App() {
   return (
@@ -40,7 +42,6 @@ function App() {
             <Route
               element={<ProtectedRoute requiredPermissions={["JADWAL_READ"]} />}
             >
-              {/* REVISI: Mengubah element dari <JadwalPage /> menjadi <JadwalDokter /> */}
               <Route path="/jadwal" element={<JadwalDokter />} />
             </Route>
 
@@ -50,6 +51,9 @@ function App() {
               <Route path="/pembayaran" element={<Pembayaran />} />
             </Route>
 
+            {/* =========================================================================
+                RUTE 1: RIWAYAT KUNJUNGAN (MILIK TEMAN ANDA - JANGAN DIGANGGU)
+               ========================================================================= */}
             <Route
               element={
                 <ProtectedRoute
@@ -57,7 +61,20 @@ function App() {
                 />
               }
             >
-              <Route path="/rekam-medis" element={<RiwayatKunjungan />} />
+              <Route path="/riwayat-kunjungan" element={<RiwayatKunjungan />} />
+            </Route>
+
+            {/* =========================================================================
+                RUTE 2: REKAM MEDIS (TUGAS FORM INPUT + TINDAKAN ANDA)
+               ========================================================================= */}
+            <Route
+              element={
+                <ProtectedRoute
+                  allowedRoles={["SUPERADMIN", "DOKTER"]}
+                />
+              }
+            >
+              <Route path="/rekam-medis" element={<RekamMedis />} />
             </Route>
 
             <Route
