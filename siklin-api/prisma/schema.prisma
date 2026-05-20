@@ -96,6 +96,7 @@ model RekamMedis {
   id         String   @id @default(uuid())
   keluhan    String   @db.Text
   diagnosa   String   @db.Text
+  tindakan   String?  @db.Text  // <-- Tambahan dari model bawah (opsional)
   resep      String?  @db.Text
   tglPeriksa DateTime @default(now())
   createdAt  DateTime @default(now())
@@ -121,7 +122,7 @@ model Jadwal {
   updatedAt  DateTime @updatedAt
 
   dokterId String
-  dokter   User   @relation(fields: [dokterId], references: [id], onDelete: Cascade)
+  dokter   User     @relation(fields: [dokterId], references: [id], onDelete: Cascade)
 
   antrian Antrian[]
 }
@@ -159,3 +160,5 @@ model Pembayaran {
   kasirId String?
   kasir   User?   @relation(fields: [kasirId], references: [id], onDelete: SetNull)
 }
+
+

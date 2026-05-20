@@ -6,7 +6,17 @@ const navItems = [
   { to: "/pasien", label: "Daftar Pasien", permission: "PASIEN_READ_ALL" },
   { to: "/jadwal", label: "Jadwal", permission: "JADWAL_READ" },
   { to: "/antrian", label: "Antrian", permission: "ANTRIAN_READ" },
-  { to: "/rekam-medis", label: "Riwayat Kunjungan", oneOf: ["REKAM_READ_ALL", "REKAM_READ_OWN"] },
+  
+  // =========================================================================
+  // 1. TUGAS REKAN ANDA (TETAP DIJAGA)
+  // =========================================================================
+  { to: "/riwayat-kunjungan", label: "Riwayat Kunjungan" },
+
+  // =========================================================================
+  // 2. TUGAS ANDA (MANDIRI - FORM REKAM MEDIS)
+  // =========================================================================
+  { to: "/rekam-medis", label: "Rekam Medis", oneOf: ["REKAM_READ_ALL", "REKAM_READ_OWN"] },
+
   { to: "/pembayaran", label: "Pembayaran", permission: "PEMBAYARAN_READ" },
   { to: "/users", label: "User", permission: "USER_ALL" },
 ];
